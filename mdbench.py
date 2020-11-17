@@ -238,7 +238,7 @@ def total_millis(td):
 	return total_micros(td)/1000
 
 def report(title, counter):
-	print('{:16}: {:6.2f}ms ±{:=6.2f}ms, median {:=6.2f}ms {:6.2f} op/s' \
+	print('{:16}: {:6.3f}ms ±{:=6.3f}ms, median {:=6.3f}ms {:6.3f} op/s' \
 		.format(title, counter.avg(), counter.std(), counter.median() ,counter.count()/counter.sum()*10**3))
 
 DIR_COUNT = 1000
