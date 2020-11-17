@@ -5,6 +5,9 @@
 # Copyright (C) 2013-2020 Deutsches Elektronen-Synchroton,
 # Member of the Helmholtz Association, (DESY), HAMBURG, GERMANY
 #
+# 2020 added median calculation johannes.veh@fau.de
+#
+#
 # This software may be used and distributed according to the terms of the
 # GNU General Public License version 2 or any later version.
 #
@@ -40,6 +43,7 @@ import getopt
 import string
 from datetime import datetime
 import math
+from heapq import heappush, heappop
 
 DIR = 'dir.'
 FILE = 'file.'
@@ -65,7 +69,7 @@ class MovingAvg:
 		self._count = 0
 		self._sigma = 0.0
 		self._total = 0
-
+		self.lowers, self.highers = [],[]
 	def avg(self):
 		"""
 		Return the current value of average.
@@ -86,6 +90,25 @@ class MovingAvg:
 		self._sigma = (self._sigma * self._count + v**2) / (self._count + 1)
 		self._count += 1
 		self._total += v
+		if not self.highers or v > self.highers[0]:
+            		heappush(self.highers, v)
+		else:
+            		heappush(self.lowers, -v)  # for lowers we need a max heap
+		self.rebalance()
+
+	def rebalance(self):
+		if len(self.lowers) - len(self.highers) > 1:
+			heappush(self.highers, -heappop(self.lowers))
+		elif len(self.highers) - len(self.lowers) > 1:
+			heappush(self.lowers, -heappop(self.highers))
+
+	def median(self):
+		if len(self.lowers) == len(self.highers):
+			return (-self.lowers[0] + self.highers[0])/2
+		elif len(self.lowers) > len(self.highers):
+			return -self.lowers[0]
+		else:
+			return self.highers[0]
 
 	def sum(self):
 		"""
@@ -215,8 +238,8 @@ def total_millis(td):
 	return total_micros(td)/1000
 
 def report(title, counter):
-	print('{:16}: {:6.2f}ms ±{:=6.2f}ms, {:6.2f} op/s' \
-		.format(title, counter.avg(), counter.std(), counter.count()/counter.sum()*10**3))
+	print('{:16}: {:6.2f}ms ±{:=6.2f}ms, median {:=6.2f}ms {:6.2f} op/s' \
+		.format(title, counter.avg(), counter.std(), counter.median() ,counter.count()/counter.sum()*10**3))
 
 DIR_COUNT = 1000
 FILE_COUNT = 10
